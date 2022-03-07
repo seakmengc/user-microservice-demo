@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  user_api:
+    build:
+      context: .
+      dockerfile: ./dockers/api/Dockerfile
+    command: yarn start:dev
+    ports:
+      - 3000
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - user
+    volumes:
+      - ./:/app
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0.25
+    container_name: user_mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-users}
+      MYSQL_USER: ${DB_USERNAME:-seakmeng}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./dockers/mysql:/var/lib/mysql
+    networks:
+      - user
+
+  nginx:
+    image: nginx:1.21.6
+    container_name: user_nginx
+    restart: always
+    volumes:
+      - ./dockers/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 8000:80
+    networks:
+      - user
+    depends_on:
+      - user_api
+
+networks:
+  user:
+    driver: bridge
+    name: user
